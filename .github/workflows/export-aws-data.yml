@@ -1,8 +1,8 @@
 name: export-aws-data
 run-name: export-aws-data ${{ inputs.label }}
 
-# Exports Lambda REPORT lines (CSV) and CloudWatch metrics (JSON) for a time
-# window as a workflow artifact. Logs take a few minutes to arrive: run this at
+# Summarizes AWS-side results for a time window in the job summary (one row per
+# run per function), and saves the raw data (CSV + metrics JSON) as an artifact. Logs take a few minutes to arrive: run this at
 # least 10 minutes after the last load-test run in the window. 1-minute metrics
 # are only kept for 15 days, so export each round soon after it ends.
 on:
@@ -21,6 +21,10 @@ on:
       label:
         description: 'Label for the artifact (letters, digits, . _ -), e.g. round1'
         required: true
+      warmup:
+        description: 'Seconds skipped at the start of each run for duration stats (the load-test warm-up)'
+        required: true
+        default: '30'
 
 permissions:
   id-token: write
@@ -54,9 +58,10 @@ jobs:
           END: ${{ inputs.end }}
           FUNCTIONS: ${{ inputs.functions }}
           LABEL: ${{ inputs.label }}
+          WARMUP: ${{ inputs.warmup }}
         run: |
           python3 tools/export_aws_data.py --start "$START" --end "$END" \
-            --functions "$FUNCTIONS" --label "$LABEL" --out "export/$LABEL"
+            --functions "$FUNCTIONS" --label "$LABEL" --warmup "$WARMUP" --out "export/$LABEL"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aws-data-${{ inputs.label }}
