@@ -1,0 +1,134 @@
+name: deploy
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('deploy ({0})', inputs.mode) || 'deploy (diff on push)' }}
+
+# Deploys Seng533LambdaBench stack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'functions/**'
+      - 'config/experiment.json'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'diff = show changes only; deploy = apply them'
+        type: choice
+        options: [diff, deploy]
+        default: diff
+      commit:
+        description: 'mode=deploy only: commit SHA shown in the diff you reviewed (7+ characters)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash 
+
+env:
+  STACK: Seng533LambdaBench
+  # Replaces Function URLs and 12-digit account IDs in anything that is printed.
+  REDACT: 's#https://[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws/?#<function-url>#g; s#[0-9]{12}#<account>#g'
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check who started the run, the branch, the freeze switch and the commit
+        env:
+          DEPLOYER_ID: '230185701'
+          ACTOR_ID: ${{ github.actor_id }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          ACTOR: ${{ github.actor }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'diff' }}
+          COMMIT: ${{ inputs.commit }}
+          FREEZE: ${{ vars.EXPERIMENT_FREEZE }}
+        run: |
+          if [ "$ACTOR_ID" != "$DEPLOYER_ID" ] || [ "$TRIGGERING_ACTOR" != "$ACTOR" ]; then
+            echo "::error::Only the repo owner can run deploy.yml (AWS would refuse the credentials anyway). Ask them to deploy."
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::deploy.yml only runs from main (got $GITHUB_REF)"
+            exit 1
+          fi
+          if [ "$MODE" = "deploy" ]; then
+            if [ "$FREEZE" = "true" ]; then
+              echo "::error::EXPERIMENT_FREEZE=true: a measurement round is in progress, deploys are blocked"
+              exit 1
+            fi
+            if [ "${#COMMIT}" -lt 7 ] || [[ "$GITHUB_SHA" != "$COMMIT"* ]]; then
+              echo "::error::commit input '$COMMIT' doesn't match main ($GITHUB_SHA). Run mode=diff on the current main, review it, then deploy that SHA."
+              exit 1
+            fi
+          fi
+
+  diff:
+    needs: guard
+    if: github.event_name == 'push' || inputs.mode == 'diff'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read region from config
+        run: echo "AWS_REGION=$(jq -r .region config/experiment.json)" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - run: npm ci
+        working-directory: infra
+      - name: cdk diff
+        working-directory: infra
+        run: |
+          npx cdk diff "$STACK" --no-color 2>&1 | sed -E "$REDACT" > diff.txt
+          cat diff.txt
+          {
+            echo "### cdk diff $STACK at \`$GITHUB_SHA\`"
+            echo "To apply: **Run workflow** on main with mode \`deploy\` and commit \`$GITHUB_SHA\`."
+            echo '```'
+            cat diff.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: guard
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'deploy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Read region from config
+        run: echo "AWS_REGION=$(jq -r .region config/experiment.json)" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - run: npm ci
+        working-directory: infra
+      - name: cdk deploy
+        working-directory: infra
+        run: npx cdk deploy "$STACK" --require-approval never --no-color 2>&1 | sed -E "$REDACT"
+      - name: Smoke test
+        run: |
+          aws cloudformation describe-stacks --stack-name "$STACK" \
+            --query "Stacks[0].Outputs" --output json | python3 tools/smoke_test.py
