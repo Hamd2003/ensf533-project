@@ -1,19 +1,21 @@
 name: export-aws-data
 run-name: export-aws-data ${{ inputs.label }}
 
-# Summarizes AWS-side results for a time window in the job summary (one row per
-# run per function), and saves the raw data (CSV + metrics JSON) as an artifact. Logs take a few minutes to arrive: run this at
-# least 10 minutes after the last load-test run in the window. 1-minute metrics
-# are only kept for 15 days, so export each round soon after it ends.
+# Summarizes AWS-side results in the job summary (one row per run per function)
+# and saves the raw data (CSV + metrics JSON) as an artifact. Times are Calgary
+# time. Logs take a few minutes to arrive: run this at least 10 minutes after
+# the last load-test run. 1-minute metrics are only kept for 15 days, so export
+# each round soon after it ends.
 on:
   workflow_dispatch:
     inputs:
       start:
-        description: 'Window start, ISO 8601 UTC (e.g. 2026-10-28T15:00:00Z)'
+        description: 'When you started the first k6 run, Calgary time: "2026-10-28 18:30", "2026-10-28 6:30pm", or "6:30pm" (today). Add Z for UTC.'
         required: true
       end:
-        description: 'Window end, ISO 8601 UTC, at most 24 h after start. Wait >= 10 min after the last run.'
-        required: true
+        description: 'Optional, same format. Leave empty to include everything up to 10 minutes ago (max 24 h after start).'
+        required: false
+        default: ''
       functions:
         description: "'all' or comma-separated names (e.g. seng533-cpu-1024,seng533-api-512)"
         required: true

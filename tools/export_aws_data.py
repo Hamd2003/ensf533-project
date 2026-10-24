@@ -13,9 +13,12 @@ Raw data for the analysis team (in the artifact):
 REPORT lines are read with paginated FilterLogEvents rather than Logs Insights,
 which caps results at 10,000 rows.
 
+Times are Calgary time unless they carry a zone (Z or +hh:mm). Without --end,
+the window runs until 10 minutes ago (at most 24 h after --start).
+
 Usage:
-  python3 tools/export_aws_data.py --start 2026-10-28T15:00:00Z --end 2026-10-28T17:00:00Z \
-      --functions all --label round1 --out export
+  python3 tools/export_aws_data.py --start "2026-10-28 18:30" --label round1 --out export
+  python3 tools/export_aws_data.py --start 6:30pm --end 7:15pm --functions seng533-cpu-1024 --label test
 """
 
 import argparse
@@ -27,10 +30,13 @@ import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import boto3
 
 ROOT = Path(__file__).resolve().parent.parent
+LOCAL_TZ = ZoneInfo("America/Edmonton")  # Calgary, where the load generator runs (handles MDT/MST)
+TIME_FORMATS = ["%Y-%m-%d %H:%M", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %I:%M %p", "%H:%M", "%I:%M%p", "%I:%M %p"]
 MAX_WINDOW = timedelta(hours=24)
 LOG_DELAY = timedelta(minutes=10)
 PERIOD_SECONDS = 60
@@ -72,13 +78,30 @@ def fail(message):
 
 
 def parse_time(value, name):
+    """Parse a user-entered time; Calgary time unless it has a zone. Time alone means today."""
+    text = value.strip()
     try:
-        parsed = datetime.fromisoformat(value.strip())
+        parsed = datetime.fromisoformat(text)
     except ValueError:
-        fail(f"{name} is not ISO 8601 (expected e.g. 2026-10-28T15:00:00Z): {value!r}")
+        for fmt in TIME_FORMATS:
+            try:
+                parsed = datetime.strptime(text.upper(), fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            fail(f"{name} {value!r} isn't a time I understand. Use Calgary time like "
+                 "'2026-10-28 18:30', '2026-10-28 6:30pm' or '6:30pm' (today), or UTC like '2026-10-29T00:30:00Z'.")
+        if "%Y" not in fmt:  # time only: today's date in Calgary
+            today = datetime.now(LOCAL_TZ).date()
+            parsed = parsed.replace(year=today.year, month=today.month, day=today.day)
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)  # inputs are documented as UTC
+        parsed = parsed.replace(tzinfo=LOCAL_TZ)
     return parsed.astimezone(timezone.utc)
+
+
+def local(dt):
+    return dt.astimezone(LOCAL_TZ)
 
 
 def resolve_functions(value, config):
@@ -215,8 +238,9 @@ def summarize_run(function, run, warmup_s, metrics):
 
     return {
         "function": function,
-        "run_start": datetime.fromtimestamp(start_ms / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        "run_end": datetime.fromtimestamp(end_ms / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "run_start": local(datetime.fromtimestamp(start_ms / 1000, timezone.utc)).strftime("%Y-%m-%d %H:%M:%S"),
+        "run_end": local(datetime.fromtimestamp(end_ms / 1000, timezone.utc)).strftime("%Y-%m-%d %H:%M:%S"),
+        "run_start_utc": datetime.fromtimestamp(start_ms / 1000, timezone.utc).isoformat(timespec="seconds"),
         "length_s": round((end_ms - start_ms) / 1000),
         "requests_total": len(run),
         "requests_measured": len(measured),
@@ -251,18 +275,20 @@ def render_summary(label, start, end, warmup_s, runs, missing):
     lines = [
         f"## AWS-side results `{label}`",
         "",
-        f"Window **{start:%Y-%m-%d %H:%M:%S}** to **{end:%Y-%m-%d %H:%M:%S}** UTC. "
+        f"Window **{local(start):%Y-%m-%d %H:%M}** to **{local(end):%Y-%m-%d %H:%M} {local(end):%Z}** "
+        f"(Calgary; {start:%H:%M}–{end:%H:%M} UTC). "
         f"One row per run. A new run starts after {RUN_GAP_SECONDS} s with no requests. "
-        f"Duration figures skip each run's first **{warmup_s} s** (warm-up).",
+        f"Duration figures skip each run's first **{warmup_s} s** (warm-up). Run start times are Calgary time.",
         "",
     ]
     if not runs:
-        lines += ["No invocations in this window. Check the times (UTC) and wait 10 minutes after the last run.", ""]
+        lines += ["No invocations in this window. Check the start time (Calgary time unless you added Z) "
+                  "and wait 10 minutes after the last run.", ""]
     else:
         lines += [
             "### Execution duration (ms, warm-up excluded)",
             "",
-            "| Function | Run start (UTC) | Length (s) | Requests measured | Mean | p50 | p95 | p99 | Max |",
+            "| Function | Run start (Calgary) | Length (s) | Requests measured | Mean | p50 | p95 | p99 | Max |",
             "|---|---|--:|--:|--:|--:|--:|--:|--:|",
         ]
         for r in runs:
@@ -276,7 +302,7 @@ def render_summary(label, start, end, warmup_s, runs, missing):
             "",
             "### Cold starts, capacity and cost (whole run)",
             "",
-            "| Function | Run start (UTC) | Requests | Cold starts | Init mean (ms) | Environments | "
+            "| Function | Run start (Calgary) | Requests | Cold starts | Init mean (ms) | Environments | "
             "Peak concurrency | Throttles | Errors / timeouts | Max memory used (MB) | Billed mean (ms) | Cost per 1M req (USD) |",
             "|---|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|",
         ]
@@ -315,8 +341,8 @@ def render_summary(label, start, end, warmup_s, runs, missing):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--start", required=True, help="ISO 8601, UTC")
-    parser.add_argument("--end", required=True, help="ISO 8601, UTC")
+    parser.add_argument("--start", required=True, help="Calgary time, e.g. '2026-10-28 18:30' or '6:30pm'")
+    parser.add_argument("--end", default="", help="same format; empty = until 10 minutes ago")
     parser.add_argument("--functions", default="all", help="'all' or comma-separated function names")
     parser.add_argument("--label", required=True, help="e.g. round1")
     parser.add_argument("--warmup", type=int, default=30, help="seconds skipped at the start of each run")
@@ -324,8 +350,15 @@ def main():
     args = parser.parse_args()
 
     config = json.loads((ROOT / "config" / "experiment.json").read_text())
-    start, end = parse_time(args.start, "start"), parse_time(args.end, "end")
+    start = parse_time(args.start, "start")
+    if args.end.strip():
+        end = parse_time(args.end, "end")
+    else:  # everything since start that has had time to reach the logs
+        end = min(datetime.now(timezone.utc).replace(microsecond=0) - LOG_DELAY, start + MAX_WINDOW)
     if end <= start:
+        if not args.end.strip():
+            fail(f"start {local(start):%Y-%m-%d %H:%M %Z} is less than 10 minutes ago (or in the future); "
+                 "wait 10 minutes after the last run, or check the date")
         fail("end must be after start")
     if end - start > MAX_WINDOW:
         fail("window must be at most 24 hours; export longer periods in several runs")
