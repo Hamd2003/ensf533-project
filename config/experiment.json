@@ -1,0 +1,52 @@
+{
+  "region": "us-west-2",
+  "memory_levels_mb": [
+    512,
+    1024,
+    1769
+  ],
+  "workloads": [
+    "api",
+    "cpu",
+    "data"
+  ],
+  "prime_limit": 500000,
+  "dataset_size": 300000,
+  "dataset_seed": 533,
+  "request_body": {
+    "user_id": "u-1",
+    "item": "widget",
+    "quantity": 3
+  },
+  "expected_results": {
+    "api": {
+      "user_id": "u-1",
+      "item": "widget",
+      "quantity": 3
+    },
+    "cpu": {
+      "prime_count": 41538
+    },
+    "data": {
+      "input_records": 300000,
+      "selected_records": 149257,
+      "min_value": 500.001898,
+      "max_value": 999.99991,
+      "mean_value": 750.411353,
+      "category_counts": {
+        "c0": 14919,
+        "c1": 15117,
+        "c2": 14909,
+        "c3": 14918,
+        "c4": 14666,
+        "c5": 15057,
+        "c6": 14926,
+        "c7": 14971,
+        "c8": 14855,
+        "c9": 14919
+      },
+      "checksum": 346402528
+    }
+  },
+  "frozen": false
+}

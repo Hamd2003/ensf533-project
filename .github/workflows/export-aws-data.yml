@@ -1,0 +1,65 @@
+name: export-aws-data
+run-name: export-aws-data ${{ inputs.label }}
+
+# Exports Lambda REPORT lines (CSV) and CloudWatch metrics (JSON) for a time
+# window as a workflow artifact. Logs take a few minutes to arrive: run this at
+# least 10 minutes after the last load-test run in the window. 1-minute metrics
+# are only kept for 15 days, so export each round soon after it ends.
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: 'Window start, ISO 8601 UTC (e.g. 2026-10-28T15:00:00Z)'
+        required: true
+      end:
+        description: 'Window end, ISO 8601 UTC, at most 24 h after start. Wait >= 10 min after the last run.'
+        required: true
+      functions:
+        description: "'all' or comma-separated names (e.g. seng533-cpu-1024,seng533-api-512)"
+        required: true
+        default: all
+      label:
+        description: 'Label for the artifact (letters, digits, . _ -), e.g. round1'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Run export-aws-data from the main branch (got $GITHUB_REF)"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: pip install boto3==1.43.118
+      - name: Read region from config
+        run: echo "AWS_REGION=$(jq -r .region config/experiment.json)" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_EXPORT_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Export
+        env:
+          START: ${{ inputs.start }}
+          END: ${{ inputs.end }}
+          FUNCTIONS: ${{ inputs.functions }}
+          LABEL: ${{ inputs.label }}
+        run: |
+          python3 tools/export_aws_data.py --start "$START" --end "$END" \
+            --functions "$FUNCTIONS" --label "$LABEL" --out "export/$LABEL"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: aws-data-${{ inputs.label }}
+          path: export/
+          retention-days: 90
+          if-no-files-found: error
