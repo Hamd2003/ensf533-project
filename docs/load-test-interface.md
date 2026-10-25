@@ -1,5 +1,7 @@
 # Load-test interface (AWS side)
 
+**Just want to run the tests?** See [../loadtest/README.md](../loadtest/README.md). The k6 script is ready-made, and this page is the reference behind it.
+
 What the load-test scripts need to know to call the Lambda functions and get AWS-side data. This file is public: it contains **no Function URLs**. The AWS owner (GitHub `Hamd2003`) shares the URLs privately in the group chat.
 
 ## Endpoints
@@ -111,7 +113,7 @@ Every response carries Lambda's request ID in the **`x-amzn-requestid`** respons
 
 ## Limits
 
-- Account concurrency quota in `us-west-2`: **to be confirmed** before the 50-VU configuration. If it is below 50, the 50-VU run will see 429s.
+- Account concurrency quota in `us-west-2`: currently **10 concurrent executions and 100 requests/s** (the increase to 1000 is pending). That's why rounds use the `restricted` profile (3 VUs; 1/3/8 for RQ2). See [../loadtest/README.md](../loadtest/README.md). Any 429 means the limit was hit, not a performance result.
 - Function timeout: 30 s.
 
 ## Coordination

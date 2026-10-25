@@ -13,3 +13,6 @@ urls.json
 
 # Local export output
 export/
+
+# Quick k6 checks, not study data
+results/test/
