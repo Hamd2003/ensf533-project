@@ -5,18 +5,18 @@ on:
   push:
     branches: ['**']
     paths:
-      - 'functions/**'
-      - 'infra/**'
-      - 'tools/**'
-      - 'config/experiment.json'
-      - '.github/workflows/**'
+      - 'functions/**'           # pytest
+      - 'infra/**'               # tsc + cdk synth
+      - 'config/experiment.json' # read by both
+      - '.github/workflows/ci.yml'
+      - '!**.md'                 # docs never need CI
   pull_request:
     paths:
       - 'functions/**'
       - 'infra/**'
-      - 'tools/**'
       - 'config/experiment.json'
-      - '.github/workflows/**'
+      - '.github/workflows/ci.yml'
+      - '!**.md'
 
 permissions:
   contents: read

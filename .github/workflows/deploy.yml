@@ -10,6 +10,8 @@ on:
       - 'infra/**'
       - 'functions/**'
       - 'config/experiment.json'
+      - '!functions/tests/**' # not part of the deployed code
+      - '!**.md'
   workflow_dispatch:
     inputs:
       mode:
