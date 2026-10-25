@@ -81,7 +81,7 @@ Error responses have `ok: false` and an `error` message. Status codes you may se
 4. **Read the results in the run's summary.** There's one row per run per function: execution duration (mean, p50, p95, p99, max) after the warm-up, cold starts and init time, environments, peak concurrency, throttles, errors/timeouts, max memory, billed duration and cost per 1M requests.
 5. For your own analysis, download the artifact `aws-data-<label>` (kept 90 days). It holds the same summary (`summary.md`, `summary.json`) plus the raw data below.
 
-**How runs are detected:** a function's traffic is split into runs wherever it gets no requests for **30 s**. If two runs on the **same function** are less than 30 s apart, they merge into one row flagged ⚠️ (longer than 180 s). To avoid that, leave at least 30 s between runs, or export each run with its own window.
+**The summary is a quick look; the request ID is exact.** The summary groups a function's traffic into runs wherever it's idle for 30 s. If two runs on the same function are closer together, they show up as one row flagged ⚠️. That's fine: for exact per-run results, use the request ID (below). You don't have to space out your runs.
 
 Export each round within **15 days**: CloudWatch keeps 1-minute metrics only that long.
 
@@ -105,7 +105,9 @@ The artifact also contains, for each function:
 
 **`summary.json`**: the summary table as data. **`manifest.json`**: window, label, warm-up and per-function line counts.
 
-Request IDs in the CSV can't be joined exactly to `env_id`/`cold` in HTTP responses (only approximately, by time), so treat client-side and AWS-side data as separate sources.
+### Matching k6 requests to AWS data (exact)
+
+Every response carries Lambda's request ID in the **`x-amzn-requestid`** response header (in k6: `res.headers['X-Amzn-Requestid']`). It's the same ID as `request_id` in the CSV. Save it with each request in your k6 results, together with your own run label. Then join on it to get, for every request, the AWS execution duration, billed duration, memory used, and whether it was a cold start (`init_duration_ms`). Run boundaries and the warm-up come from your own k6 timestamps, so there's no guessing.
 
 ## Limits
 

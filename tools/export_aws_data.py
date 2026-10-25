@@ -323,7 +323,8 @@ def render_summary(label, start, end, warmup_s, runs, missing):
         "excluding network and Function URL overhead. Client-side response time and throughput come from k6, not from here.",
         "- **† Short run**: shorter than the warm-up, so every request is included.",
         f"- **⚠️ Long run**: over {MAX_RUN_SECONDS} s, so two runs on the same function were probably less than "
-        f"{RUN_GAP_SECONDS} s apart and got merged. Export each of them with its own start/end window.",
+        f"{RUN_GAP_SECONDS} s apart and got merged. For exact per-run numbers, join the CSV with k6 results "
+        "on the `x-amzn-requestid` response header (= `request_id`).",
         "- **Cold starts**: requests with an `Init Duration`, meaning a new execution environment was created. "
         "**Environments**: distinct log streams (one per environment).",
         "- **Peak concurrency / Throttles**: CloudWatch 1-minute `ConcurrentExecutions` (max) and `Throttles` (sum) "
