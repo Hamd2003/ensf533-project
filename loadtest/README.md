@@ -70,9 +70,12 @@ One-time setup:
 3. **Wait 10 minutes** after it ends.
 4. **Export the AWS data:** GitHub → **Actions → export-aws-data → Run workflow**. Use the printed `start` (including **pm**) and `label`, and leave the rest as they are. Then download the export into the round's folder:
    ```sh
+   # round 1 shown; for round N, replace every 1 with N
    gh run download $(gh run list --workflow export-aws-data.yml --limit 1 --json databaseId --jq '.[0].databaseId') \
-     -n aws-data-restricted-round1 -D results/round1/aws-export-data
+     -n aws-data-restricted-round1 -D /tmp/aws-round1
+   mkdir -p results/round1/aws-export-data && mv /tmp/aws-round1/restricted-round1/* results/round1/aws-export-data/
    ```
+   The download contains an extra `restricted-round1/` folder; the second line moves its files up into `aws-export-data/`.
 
 ## Other commands
 

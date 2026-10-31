@@ -1,0 +1,37 @@
+{
+  "label": "restricted-round2",
+  "start": "2026-10-31T20:13:00+00:00",
+  "end": "2026-10-31T20:52:41+00:00",
+  "region": "us-west-2",
+  "warmup_s": 30,
+  "exported_at": "2026-10-31T21:02:48+00:00",
+  "functions": {
+    "seng533-api-512": {
+      "report_lines": 12843
+    },
+    "seng533-api-1024": {
+      "report_lines": 13394
+    },
+    "seng533-api-1769": {
+      "report_lines": 13202
+    },
+    "seng533-cpu-512": {
+      "report_lines": 192
+    },
+    "seng533-cpu-1024": {
+      "report_lines": 1503
+    },
+    "seng533-cpu-1769": {
+      "report_lines": 628
+    },
+    "seng533-data-512": {
+      "report_lines": 301
+    },
+    "seng533-data-1024": {
+      "report_lines": 639
+    },
+    "seng533-data-1769": {
+      "report_lines": 1058
+    }
+  }
+}
