@@ -113,7 +113,7 @@ Every response carries Lambda's request ID in the **`x-amzn-requestid`** respons
 
 ## Limits
 
-- Account concurrency quota in `us-west-2`: currently **10 concurrent executions and 100 requests/s** (the increase to 1000 is pending). That's why rounds use the `restricted` profile (3 VUs; 1/3/8 for RQ2). See [../loadtest/README.md](../loadtest/README.md). Any 429 means the limit was hit, not a performance result.
+- Account concurrency quota in `us-west-2`: currently **10 concurrent executions and 100 requests/s** (AWS rejected the increase to 1000). That's why rounds use the `restricted` profile (3 VUs; 1/3/8 for RQ2). See [../loadtest/README.md](../loadtest/README.md). Any 429 means the limit was hit, not a performance result.
 - Function timeout: 30 s.
 
 ## Coordination

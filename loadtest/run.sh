@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs one setup and saves every request to results/round<N>/ (test runs: results/test/).
+# Runs one setup and saves every request to results/round<N>/k6-measured-data/ (test runs: results/test/).
 #
 #   ./loadtest/run.sh <profile> <round> <setup>   e.g.  ./loadtest/run.sh restricted 1 cpu-1024
 #   ./loadtest/run.sh test <setup>                20 s check with 1 user (not study data)
@@ -38,8 +38,8 @@ else
   setup="$3"
   case "$profile" in restricted|standard) ;; *) echo "Profile must be restricted or standard (got '$profile')" >&2; exit 1 ;; esac
   case "$round" in 1|2|3) ;; *) echo "Round must be 1, 2 or 3 (got '$round')" >&2; exit 1 ;; esac
-  mkdir -p "results/round${round}"
-  out="results/round${round}/${profile}-r${round}-${setup}.jsonl"
+  mkdir -p "results/round${round}/k6-measured-data"
+  out="results/round${round}/k6-measured-data/${profile}-r${round}-${setup}.jsonl"
   if [ -e "$out" ]; then
     echo "$out already exists. Delete it first if you really want to redo this run." >&2
     exit 1

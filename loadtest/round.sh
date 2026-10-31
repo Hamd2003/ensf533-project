@@ -35,7 +35,7 @@ case "$profile" in restricted|standard) ;; *) echo "Profile must be restricted o
 case "$round" in 1|2|3) ;; *) echo "Round must be 1, 2 or 3 (got '$round')" >&2; exit 1 ;; esac
 prefix="${profile}-r${round}"
 label="${profile}-round${round}"
-dir="results/round${round}"
+dir="results/round${round}/k6-measured-data"
 mkdir -p "$dir"
 
 # A round must start clean, so it never stops halfway because a file already exists.

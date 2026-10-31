@@ -2,6 +2,9 @@
 
 k6 scripts that run the study's measurements against the 9 Lambda functions. No code changes needed: you run one command per round.
 
+**Exact test configurations** (every setup, user count and run parameter): [TEST-CONFIGURATIONS.md](TEST-CONFIGURATIONS.md).
+**Analysing the results:** [../docs/analysis-guide.md](../docs/analysis-guide.md).
+
 ## Files
 
 | File | What it does |
@@ -34,18 +37,21 @@ A round takes about 35 minutes.
 | `api-512`, `api-1024`, `api-1769`, `cpu-512`, `cpu-1024`, `cpu-1769`, `data-512`, `data-1024`, `data-1769` | 3 | RQ1 (memory), RQ3 (workload type) |
 | `cpu-1024-low`, `cpu-1024`, `cpu-1024-high` | 1, 3, 8 | RQ2 (users at once) |
 
-These are the **`restricted`** user counts: the AWS account allows only 10 requests at once, so the proposal's 10 and 50 users don't fit (a plan adjustment). The `standard` profile has the proposal's counts, for when the limit is raised. Both are defined at the top of `run.js`.
+These are the **`restricted`** user counts: the AWS account allows only 10 requests at once, so the proposal's 10 and 50 users don't fit (a plan adjustment). AWS rejected the limit increase, so all rounds use `restricted`. The counts are defined at the top of `run.js`.
 
 ## What gets saved
 
-Everything for a round goes in **`results/round<N>/`**:
+Everything for a round goes in **`results/round<N>/`**, in two folders:
+
+**`k6-measured-data/`**, written by the round:
 
 | File | Contents |
 |---|---|
 | `restricted-r1-<setup>.jsonl` | **One line per request:** response time (`duration_ms`), `status`, correct answer or not (`valid`), `phase` (warmup/measure), number of users, and AWS's `request_id` |
 | `restricted-r1-<setup>.html` | **k6 dashboard report:** graphs of response time, requests per second and users. Open it in a browser. |
 | `restricted-r1-order.txt` | The shuffled order and each run's start time (UTC) |
-| `aws-export/` | The AWS-side data for the round (you add it after the round; see below) |
+
+**`aws-export-data/`**, the AWS-side data for the round. You add it after the round (see below).
 
 **k6 data vs AWS data:** the `.jsonl` files measure the full round trip from the laptop: network, plus AWS's front door, plus the function. The AWS export measures only the function inside AWS: execution time, billed time, memory used, cold starts and concurrency. `request_id` links each k6 line to its AWS line.
 
@@ -65,7 +71,7 @@ One-time setup:
 4. **Export the AWS data:** GitHub → **Actions → export-aws-data → Run workflow**. Use the printed `start` (including **pm**) and `label`, and leave the rest as they are. Then download the export into the round's folder:
    ```sh
    gh run download $(gh run list --workflow export-aws-data.yml --limit 1 --json databaseId --jq '.[0].databaseId') \
-     -n aws-data-restricted-round1 -D results/round1/aws-export
+     -n aws-data-restricted-round1 -D results/round1/aws-export-data
    ```
 
 ## Other commands
