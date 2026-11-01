@@ -27,10 +27,10 @@ We need to decide who will take on what analysis for the midterm report **Member
 
 | Role | Delivers | Deadline |
 |---|---|---|
-| **Member 1: data and checks** | `per_run.csv`, `per_config.csv`, the checks table | **Nov 2** |
-| **Member 2: RQ1 (memory)** | Graphs 1–2, the RQ1 supporting table, plus a summary paragraph | Nov 4 |
-| **Member 3: RQ2 (users at once)** | Graph 3, the main results table, plus a summary paragraph | Nov 4 |
-| **Member 4: RQ3 (workload type)** | Graphs 4–5, the RQ3 supporting table, the load-generator details, plus a summary paragraph | Nov 4 |
+| **Member 1: data and checks** (Floating Rock) | `per_run.csv`, `per_config.csv`, the checks table | **Nov 2** |
+| **Member 2: RQ1 (memory)** (AlePaz)| Graphs 1–2, the RQ1 supporting table, plus a summary paragraph | Nov 4 |
+| **Member 3: RQ2 (users at once)** (Muneeb)| Graph 3, the main results table, plus a summary paragraph | Nov 4 |
+| **Member 4: RQ3 (workload type)** (Erioluwa)| Graphs 4–5, the RQ3 supporting table, the load-generator details, plus a summary paragraph | Nov 4 |
 | **Repo owner (AWS side)** | Rounds 2 and 3 with their AWS exports in `results/`; the hosting details (AWS setup) and plan adjustments | ASAP |
 | **Everyone** | Their own individual contribution | Nov 5 |
 
