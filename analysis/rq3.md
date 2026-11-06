@@ -63,13 +63,13 @@ The ordering API < data < CPU for response time holds in every round. Mean respo
 | Load-generator detail | Recorded value |
 |---|---|
 | Location | Calgary, Alberta, Canada (documented in the repository) |
-| Laptop make/model | |
-| CPU model | |
-| RAM | |
-| Operating system and version | |
-| k6 version | |
-| Actual network connection / wired confirmation | |
-| Same machine and network used for all rounds — confirmation | |
+| Laptop make/model | MacBook Pro (Mac16,8) |
+| CPU model | Apple M4 Pro CPU |
+| RAM | 24 GB RAM |
+| Operating system and version | macOS 26.5 |
+| k6 version | k6 v2.3.0 |
+| Actual network connection / wired confirmation | Network Connection |
+| Same machine and network used for all rounds — confirmation | Yes |
 
 ## Reproduce the RQ3 artifacts
 
