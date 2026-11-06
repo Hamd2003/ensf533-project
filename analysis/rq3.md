@@ -58,9 +58,7 @@ The ordering API < data < CPU for response time holds in every round. Mean respo
 
 ## Load-generator location, hardware, and method
 
-The documented source is a laptop in Calgary, Alberta, Canada, sending HTTPS POST requests to Lambda Function URLs in AWS `us-west-2` (Oregon). The load generator uses k6's `constant-vus` executor: three users for RQ3, no ramp-up, and no think time. Each user sends the next request when its previous request completes. The request body is identical across workloads: `{"user_id":"u-1","item":"widget","quantity":3}`. The client timeout is 60 seconds; the Lambda timeout is 30 seconds. Each round randomizes the 11 configurations and runs them sequentially. The current runner specifies a 40-second pause between runs; recorded run-order files preserve actual start times.
 
-The protocol requires the same laptop and wired network across rounds. The actual machine specifications and connection confirmation are left blank below, at Erioluwa's request, for the person who ran the rounds to supply. They cannot be inferred from the AWS configuration or the computer used to prepare this analysis.
 
 | Load-generator detail | Recorded value |
 |---|---|
