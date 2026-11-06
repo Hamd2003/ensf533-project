@@ -1,129 +1,83 @@
-"""Graph 3 for RQ2: response time against users at once.
+"""RQ2 figure: cpu workload at 1024 MB with 1, 3 and 8 users at once.
 
-Reads analysis/per_config.csv and writes
-analysis/figures/graph3_percentiles_vs_users.png.
+Reads analysis/per_config.csv and analysis/per_run.csv. Error bars are 95% t
+intervals across the three rounds.
 """
 
-import csv
 import sys
-from pathlib import Path
 
-import matplotlib.pyplot as plt
-
-ROOT = Path(__file__).resolve().parent.parent
-CONFIG = ROOT / "analysis" / "per_config.csv"
-FIGURE = ROOT / "analysis" / "figures" / "graph3_percentiles_vs_users.png"
-
-# cpu at 1024 MB. Ordered by users: 1, 3, 8.
-SETUPS = ("cpu-1024-low", "cpu-1024", "cpu-1024-high")
-SERIES = (
-    ("mean_ms", "Mean", "#0072B2", "o"),
-    ("p95_ms", "p95", "#E69F00", "s"),
-    ("p99_ms", "p99", "#D55E00", "D"),
+from style import (
+    BLUE, INK, MUTED, NEUTRAL, ORANGE, ROOT, AQUA, errorbar, load_configs, load_runs,
+    panels, pick, polish, save, values,
 )
 
-
-def load_rows():
-    with CONFIG.open(newline="") as stream:
-        by_setup = {row["setup"]: row for row in csv.DictReader(stream)}
-    missing = [name for name in SETUPS if name not in by_setup]
-    if missing:
-        raise ValueError(f"per_config.csv is missing {missing}")
-    rows = [by_setup[name] for name in SETUPS]
-    rows.sort(key=lambda row: int(row["users"]))
-    return rows
+SETUPS = ("cpu-1024-low", "cpu-1024", "cpu-1024-high")
+USERS = (1, 3, 8)
+SERIES = (("mean_ms", "mean", BLUE), ("p95_ms", "p95", ORANGE), ("p99_ms", "p99", AQUA))
+GRID_BAR = "#dcdad4"
+SHIFT = {"mean_ms": -0.18, "p95_ms": 0.0, "p99_ms": 0.18}
 
 
-def plot(rows):
-    users = [int(row["users"]) for row in rows]
-    plt.rcParams.update({
-        "font.family": "sans-serif",
-        "font.size": 11,
-        "axes.linewidth": 0.8,
-        "xtick.major.width": 0.8,
-        "ytick.major.width": 0.8,
-    })
-    fig, ax = plt.subplots(figsize=(7.4, 4.7), layout="constrained")
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
+def users_axis(ax):
+    ax.set_xticks(USERS)
+    ax.set_xlim(0, 9)
 
-    for column, label, color, marker in SERIES:
-        ax.plot(
-            users,
-            [float(row[column]) for row in rows],
-            label=label,
-            color=color,
-            marker=marker,
-            markersize=8,
-            markerfacecolor=color,
-            markeredgecolor="white",
-            markeredgewidth=1.2,
-            linewidth=2.2,
-            solid_capstyle="round",
-        )
 
-    ax.set_xlabel("Users at once")
-    ax.set_ylabel("Response time (ms)")
-    ax.set_title(
-        "cpu workload, 1024 MB, average of three rounds",
-        loc="left",
-        fontsize=10.5,
-        color="#4a4a4a",
-        pad=8,
-    )
-    fig.suptitle(
-        "Response time versus users at once",
-        x=0.012,
-        ha="left",
-        fontsize=14,
-        color="#1a1a1a",
-    )
-    ax.set_xticks(users)
-    ax.set_xlim(0.4, 8.6)
-    ax.set_ylim(1100, 1400)
-    ax.set_yticks(range(1100, 1401, 50))
-    ax.yaxis.set_major_formatter(lambda value, _pos: f"{value:,.0f}")
-    ax.grid(True, axis="y", color="#e6e6e6", linewidth=0.9)
-    ax.set_axisbelow(True)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_color("#bdbdbd")
-    ax.spines["bottom"].set_color("#bdbdbd")
-    ax.tick_params(colors="#333333")
-    ax.legend(
-        frameon=False,
-        loc="upper right",
-        handlelength=2.4,
-        labelspacing=0.4,
-    )
-    ax.text(
-        0.02,
-        0.06,
-        "Vertical scale starts at 1,100 ms",
-        transform=ax.transAxes,
-        ha="left",
-        va="bottom",
-        fontsize=8.5,
-        color="#6b6b6b",
-    )
+def percentiles(ax, rows):
+    for column, label, color in SERIES:
+        xs = [users + SHIFT[column] for users in USERS]
+        errorbar(ax, xs, values(rows, column), values(rows, f"{column}_ci95"), color,
+                 label=label)
+    users_axis(ax)
+    ax.set_ylim(800, 1600)
+    ax.legend(loc="lower right", ncol=3, frameon=False, labelcolor=MUTED,
+              handletextpad=0.3, columnspacing=0.8)
+    polish(ax, "a", "Mean, p95, p99 (95% CI)", "Users at once", "Response time (ms)")
 
-    FIGURE.parent.mkdir(exist_ok=True)
-    fig.savefig(FIGURE, dpi=220)
-    plt.close(fig)
+
+def rounds(ax, runs):
+    for users in USERS:
+        means = [float(r["mean_ms"]) for r in runs
+                 if r["setup"] in SETUPS and int(r["users"]) == users]
+        if len(means) != 3:
+            raise ValueError(f"Expected 3 rounds at {users} users, found {len(means)}")
+        ax.plot([users, users], [min(means), max(means)], color=GRID_BAR, linewidth=6,
+                solid_capstyle="round", zorder=1)
+        ax.scatter([users] * 3, means, s=16, color=BLUE, edgecolor="white",
+                   linewidth=0.6, zorder=3)
+        ax.annotate(f"{max(means) - min(means):.0f} ms", (users, max(means)),
+                    textcoords="offset points", xytext=(0, 6), ha="center",
+                    fontsize=8, color=MUTED)
+    users_axis(ax)
+    ax.set_ylim(1100, 1300)
+    polish(ax, "b", "Mean of each round (range)", "Users at once (= environments)", "Mean response time (ms)")
+
+
+def throughput(ax, rows):
+    measured = values(rows, "throughput_rps")
+    predicted = [users / (r / 1000) for users, r in zip(USERS, values(rows, "mean_ms"))]
+    ax.plot(USERS, predicted, color=NEUTRAL, linestyle=(0, (3, 2)), linewidth=0.9,
+            zorder=2, label="N / R (law)")
+    errorbar(ax, USERS, measured, values(rows, "throughput_rps_ci95"), BLUE,
+             label="measured", line=False)
+    for users, value in zip(USERS, measured):
+        ax.annotate(f"{value:.2f}", (users, value), textcoords="offset points",
+                    xytext=(-6, 5), ha="right", fontsize=8, color=INK)
+    users_axis(ax)
+    ax.set_ylim(0, 8)
+    ax.legend(loc="upper left", frameon=False, labelcolor=MUTED)
+    polish(ax, "c", "Successful throughput", "Users at once", "Throughput (req/s)")
 
 
 def main():
-    rows = load_rows()
-    plot(rows)
-    print(f"Wrote {FIGURE.relative_to(ROOT)}")
-    print(f"{'Users':>6}  {'Mean':>8}  {'p95':>8}  {'p99':>8}")
-    for row in rows:
-        print(
-            f"{int(row['users']):6d}  "
-            f"{float(row['mean_ms']):8.1f}  "
-            f"{float(row['p95_ms']):8.1f}  "
-            f"{float(row['p99_ms']):8.1f}"
-        )
+    rows = pick(load_configs(), SETUPS)
+    runs = load_runs()
+    fig, axes = panels(3, height=2.5)
+    percentiles(axes[0], rows)
+    rounds(axes[1], runs)
+    throughput(axes[2], rows)
+    path = save(fig, "graph2_users.png")
+    print(f"Wrote {path.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -45,6 +45,9 @@ class AnalysisTests(unittest.TestCase):
         second = dict(first, round=2, requests=1000, mean_ms=30)
         result = average_configs([first, second])
         self.assertEqual(result[0]["mean_ms"], 20)
+        # n = 2: t = 12.706, s = 14.142, half-width = 12.706 * 14.142 / sqrt(2) = 127.06
+        self.assertAlmostEqual(result[0]["mean_ms_ci95"], 127.06, places=2)
+        self.assertEqual(result[0]["rounds"], 2)
         self.assertEqual(len(average_configs(self.runs)), 11)
 
     def test_percentiles(self):

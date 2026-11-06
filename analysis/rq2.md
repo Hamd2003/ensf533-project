@@ -4,11 +4,11 @@
 
 This question measures how the number of users at once changes mean, p95, and p99 response time. The workload counts primes up to 500,000, and memory stays at 1024 MB. The three levels are 1, 3, and 8 users (`cpu-1024-low`, `cpu-1024`, and `cpu-1024-high`). The 3-user level is the same run the memory question uses as its 1024 MB cpu point and the workload question uses as its cpu bar. Each level ran once on 24 October, 31 October, and 1 November, from one laptop in Calgary to Lambda in us-west-2. Each user sends the next request as soon as the previous one returns. The first 30 seconds of each run are warm-up and are left out. The measured window is 120 seconds. A request counts as successful only when the response body is correct. Each round is summarised on its own, then the three summaries are averaged. The standard deviation is the average of the standard deviations inside each run. The round-by-round table shows how far the three days sit from each other.
 
-## Graph 3
+## Figure
 
-![Response time versus users at once](figures/graph3_percentiles_vs_users.png)
+![RQ2 figure: percentiles with 95% CI, the mean of each round, and throughput against N / R](figures/graph2_users.png)
 
-Mean, p95, and p99 response time against users at once. The vertical axis starts at 1,100 ms so the three lines can be told apart. All of the points fall between about 1,200 and 1,290 ms.
+Mean, p95, and p99 response time against users at once, with 95% confidence intervals across the three rounds. All of the points fall between about 1,200 and 1,290 ms, and every interval overlaps.
 
 ## Round-average results
 

@@ -23,7 +23,17 @@ CONFIG_METRICS = [
     "failure_rate", "exec_mean_ms", "overhead_ms", "max_memory_used_mb",
     "cost_per_million_usd", "cold_starts", "peak_concurrency",
 ]
-CONFIG_COLUMNS = ["setup", "workload", "memory_mb", "users", *CONFIG_METRICS]
+CI_METRICS = [
+    "mean_ms", "median_ms", "p95_ms", "p99_ms", "throughput_rps",
+    "exec_mean_ms", "overhead_ms", "cost_per_million_usd",
+]
+CONFIG_COLUMNS = [
+    "setup", "workload", "memory_mb", "users", "rounds", *CONFIG_METRICS,
+    *(f"{key}_ci95" for key in CI_METRICS),
+]
+# Two-sided 95% Student t critical values, keyed by degrees of freedom (rounds - 1).
+T_975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571,
+         6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228}
 CHECK_COLUMNS = [
     "round", "setup", "users", "littles_law", "deviation_pct", "requests",
     "failed", "throttled", "function_errors", "timeouts", "wrong_answers",
@@ -171,12 +181,23 @@ def build_runs(root):
     return rows
 
 
+def ci95(values):
+    """Half-width of the 95% t confidence interval for the mean of the round values."""
+    if len(values) < 2:
+        return math.nan
+    if len(values) - 1 not in T_975:
+        raise ValueError(f"No t critical value for {len(values)} rounds")
+    return T_975[len(values) - 1] * statistics.stdev(values) / math.sqrt(len(values))
+
+
 def average_configs(runs):
     rows = []
     for setup in dict.fromkeys(r["setup"] for r in runs):
         group = [r for r in runs if r["setup"] == setup]
         row = {key: group[0][key] for key in CONFIG_COLUMNS[:4]}
+        row["rounds"] = len(group)
         row.update({key: statistics.mean(r[key] for r in group) for key in CONFIG_METRICS})
+        row.update({f"{key}_ci95": ci95([r[key] for r in group]) for key in CI_METRICS})
         rows.append(row)
     return rows
 
