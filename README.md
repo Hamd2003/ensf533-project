@@ -24,6 +24,10 @@ All nine functions share one code asset ([functions/](functions/)); only the han
 | `tools/` | `smoke_test.py` (post-deploy), `export_aws_data.py` (data export), `update_expected.py` (calibration) |
 | `.github/workflows/` | `ci.yml`, `deploy.yml`, `export-aws-data.yml` |
 | `config/experiment.json` | Shared experiment configuration |
+| `loadtest/` | k6 load test (`run.js`) and the round scripts; see [loadtest/README.md](loadtest/README.md) |
+| `results/round<N>/` | Raw measurements: one k6 line per request, plus the AWS export for that round |
+| `analysis/` | `build_tables.py` (per-run and per-configuration tables with 95% CIs, tests), the figure scripts and `figures/` |
+| `docs/` | Midterm report (`midterm-report.md`, `.pdf`), analysis guide, load-test interface |
 
 ## Local checks (no AWS credentials needed)
 

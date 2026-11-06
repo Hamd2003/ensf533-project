@@ -17,3 +17,6 @@ export/
 
 # Quick k6 checks, not study data
 results/test/
+
+# macOS folder metadata
+.DS_Store
