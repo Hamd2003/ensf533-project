@@ -71,8 +71,6 @@ The ordering API < data < CPU for response time holds in every round. Mean respo
 | Actual network connection / wired confirmation | |
 | Same machine and network used for all rounds — confirmation | |
 
-Source: [load-test method](../loadtest/README.md), [test configurations](../loadtest/TEST-CONFIGURATIONS.md), [k6 implementation](../loadtest/run.js), and the round-order files under `results/round*/k6-measured-data/`. The AWS host configuration is documented separately in the [repository README](../README.md); its hardware is not the load-generator hardware.
-
 ## Reproduce the RQ3 artifacts
 
 With Python and matplotlib installed, run from the repository root:
