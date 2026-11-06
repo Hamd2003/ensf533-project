@@ -1,8 +1,3 @@
-"""Reproduce RQ3 figures and supporting tables without modifying source data.
-
-Run from any directory: python3 analysis/rq3_workloads.py
-Requires matplotlib; numeric inputs use Python's standard library.
-"""
 
 import csv
 import math
@@ -92,7 +87,7 @@ def write_table(filename, fields, rows):
 
 
 def main():
-    rows, runs = load_rows()  # Validate every input before writing outputs.
+    rows, runs = load_rows() 
     (ROOT / "figures").mkdir(exist_ok=True)
     plot(rows, "mean_ms", "graph4_response_by_workload.png",
          "Graph 4: Mean response time by workload", "Mean response time (ms, log scale)", True)
