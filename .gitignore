@@ -6,6 +6,7 @@ node_modules/
 __pycache__/
 .pytest_cache/
 .venv/
+.pydeps/
 
 # Local secrets and Function URLs: never commit these (the repo will be public)
 .env*
