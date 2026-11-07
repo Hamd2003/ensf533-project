@@ -43,18 +43,14 @@ def build_supporting_table(df):
     # ---- RQ1 supporting table ----
     table = df[["setup", "exec_mean_ms", "max_memory_used_mb", "cost_per_million_usd"]]
     table.to_csv(HERE/"rq1_table.csv", index=False)
-    print(df)
     print(table.round(2).to_string(index=False))
 
 
 def main(): 
     df = pd.read_csv(HERE / "per_config.csv")
-    print(df.columns.tolist())
-    print(df[['setup', 'workload', 'memory_mb','users','mean_ms', 'median_ms', 'std_ms', 'p95_ms', 'p99_ms', 'throughput_rps', 'failure_rate', 'exec_mean_ms', 'overhead_ms', 'max_memory_used_mb', 'cost_per_million_usd', 'cold_starts', 'peak_concurrency']])
     df = df[~df["setup"].isin(["cpu-1024-low", "cpu-1024-high"])]
     
     df = df.sort_values(["workload", "memory_mb"])
-    print(df)
 
     build_graph1(df)
 
